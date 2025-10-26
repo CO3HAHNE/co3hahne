@@ -18,16 +18,15 @@
             line-height: 1.4;
             min-height: 100vh;
             font-size: 14px;
-            overflow: hidden;
+            /* УБИРАЕМ overflow: hidden */
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            /* УБИРАЕМ height: 100vh и flex */
+            min-height: 100vh;
         }
 
         header {
@@ -35,7 +34,6 @@
             margin-bottom: 20px;
             padding: 15px 0;
             border-bottom: 1px solid #ffffff;
-            flex-shrink: 0;
         }
 
         h1 {
@@ -50,7 +48,6 @@
             gap: 25px;
             margin-bottom: 20px;
             height: 550px;
-            flex-shrink: 0;
         }
 
         .panel {
@@ -67,7 +64,6 @@
             margin-bottom: 12px;
             border-bottom: 1px solid #ffffff;
             padding-bottom: 5px;
-            flex-shrink: 0;
         }
 
         .brain-container {
@@ -162,7 +158,6 @@
             padding: 15px;
             border-left: 3px solid #ffffff;
             margin-bottom: 15px;
-            flex-shrink: 0;
         }
 
         .status-line {
@@ -183,7 +178,6 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin: 15px 0;
-            flex-shrink: 0;
         }
 
         .control-button {
@@ -207,7 +201,6 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 12px;
-            flex-shrink: 0;
         }
 
         .data-item {
@@ -356,12 +349,29 @@
             background: #cccccc;
         }
 
+        /* Стили для скроллбара всей страницы */
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: #000000;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: #333333;
+            border-radius: 4px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: #555555;
+        }
+
         .section-title {
             padding: 8px 12px;
             border-bottom: 1px solid #ffffff;
             font-size: 0.9em;
             background: #111111;
-            flex-shrink: 0;
         }
 
         .api-section {
@@ -370,7 +380,6 @@
             background: #111111;
             border: 1px solid #ffffff;
             border-radius: 4px;
-            flex-shrink: 0;
         }
 
         .api-input {
