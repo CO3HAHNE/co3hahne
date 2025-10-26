@@ -49,7 +49,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 25px;
             margin-bottom: 20px;
-            height: 500px;
+            height: 550px;
             flex-shrink: 0;
         }
 
@@ -241,7 +241,7 @@
             flex-direction: column;
             gap: 10px;
             min-height: 0;
-            max-height: 300px;
+            max-height: 350px;
         }
 
         .message {
@@ -562,25 +562,28 @@
                 this.neurons = [];
                 this.connections = [];
 
-                for (let i = 0; i < 80; i++) {
+                // Создаем нейроны для фоновой активности
+                for (let i = 0; i < 60; i++) {
                     const neuron = document.createElement('div');
                     neuron.className = 'neural-node';
                     neuron.style.left = Math.random() * 100 + '%';
                     neuron.style.top = Math.random() * 100 + '%';
-                    neuron.style.opacity = '0';
+                    neuron.style.opacity = '0.1';
                     container.appendChild(neuron);
                     this.neurons.push({
                         element: neuron,
                         x: Math.random(),
                         y: Math.random(),
-                        activity: 0
+                        activity: 0,
+                        baseSpeed: 0.002 + Math.random() * 0.005
                     });
                 }
 
-                for (let i = 0; i < 40; i++) {
+                // Создаем соединения для фоновой активности
+                for (let i = 0; i < 30; i++) {
                     const connection = document.createElement('div');
                     connection.className = 'neural-connection';
-                    connection.style.opacity = '0';
+                    connection.style.opacity = '0.05';
                     container.appendChild(connection);
                     this.connections.push(connection);
                 }
@@ -589,11 +592,22 @@
             animate() {
                 if (!this.isActive) return;
 
+                // Анимируем нейроны с фоновым движением
                 this.neurons.forEach(neuron => {
-                    const baseOpacity = this.activityLevel > 0 ? 0.1 : 0;
-                    const pulse = Math.sin(Date.now() * 0.01 + neuron.x * 10) * 0.5 + 0.5;
-                    neuron.element.style.opacity = (baseOpacity + pulse * 0.4 * this.activityLevel).toString();
-                    neuron.element.style.transform = `scale(${0.8 + pulse * 0.3 * this.activityLevel})`;
+                    const time = Date.now() * neuron.baseSpeed;
+                    const pulse = Math.sin(time + neuron.x * 10) * 0.5 + 0.5;
+                    
+                    // Базовая активность + дополнительная от сообщений
+                    const baseActivity = 0.1 + (this.activityLevel * 0.3);
+                    const currentOpacity = baseActivity * pulse;
+                    
+                    neuron.element.style.opacity = currentOpacity.toString();
+                    neuron.element.style.transform = `scale(${0.8 + pulse * 0.4 * this.activityLevel})`;
+                    
+                    // Легкое движение нейронов
+                    const driftX = Math.sin(time * 0.5 + neuron.x) * 0.5;
+                    const driftY = Math.cos(time * 0.3 + neuron.y) * 0.5;
+                    neuron.element.style.transform += ` translate(${driftX}px, ${driftY}px)`;
                 });
 
                 this.updateMetrics();
@@ -601,8 +615,8 @@
             }
 
             updateMetrics() {
-                const activeCount = Math.floor(this.activityLevel * 40);
-                const synapses = Math.floor(this.activityLevel * 80);
+                const activeCount = Math.floor(this.activityLevel * 50 + 10); // Минимум 10 нейронов для фона
+                const synapses = Math.floor(this.activityLevel * 100 + 20); // Минимум 20 синапсов для фона
                 
                 document.getElementById('activeNeurons').textContent = activeCount;
                 document.getElementById('synapsesPerSec').textContent = synapses;
@@ -642,12 +656,12 @@
 
                 // Создаем всплеск активности в нейронной визуализации
                 this.neurons.forEach(neuron => {
-                    if (Math.random() < intensity * 0.6) {
-                        neuron.element.style.opacity = '0.8';
-                        neuron.element.style.transform = 'scale(1.8)';
+                    if (Math.random() < intensity * 0.8) {
+                        neuron.element.style.opacity = '0.9';
+                        neuron.element.style.transform = 'scale(2.0)';
                         setTimeout(() => {
-                            neuron.element.style.transform = 'scale(1)';
-                        }, 300);
+                            neuron.element.style.transform = 'scale(1.5)';
+                        }, 200);
                     }
                 });
 
@@ -657,12 +671,12 @@
 
             startDecreaseActivity() {
                 this.decreaseInterval = setInterval(() => {
-                    if (this.activityLevel > 0) {
-                        this.activityLevel = Math.max(0, this.activityLevel - 0.02);
+                    if (this.activityLevel > 0.1) { // Оставляем фоновую активность 10%
+                        this.activityLevel = Math.max(0.1, this.activityLevel - 0.01);
                         this.updateMetrics();
                         
-                        // Если активность упала до нуля, сбрасываем все
-                        if (this.activityLevel === 0) {
+                        // Если активность упала до фонового уровня, сбрасываем активные зоны
+                        if (this.activityLevel <= 0.1) {
                             this.activeRegions.clear();
                             document.getElementById('activeBrainRegion').textContent = '-';
                         }
@@ -678,7 +692,7 @@
             }
 
             reset() {
-                this.activityLevel = 0;
+                this.activityLevel = 0.1; // Оставляем фоновую активность
                 this.activeRegions.clear();
                 
                 Object.keys(this.brainRegions).forEach(regionId => {
@@ -689,7 +703,7 @@
                 });
                 
                 this.neurons.forEach(neuron => {
-                    neuron.element.style.opacity = '0';
+                    neuron.element.style.opacity = '0.1';
                     neuron.element.style.transform = 'scale(1)';
                 });
                 
@@ -717,65 +731,34 @@
                 try {
                     this.updateAPIStatus('Подключение к GPT-5 Nano...', 'loading');
                     
-                    let response = await this.makeResponsesAPIRequest("Тестовое сообщение");
+                    // Сразу переходим к Chat Completions API, так как Responses API дает 429
+                    const response = await this.makeAPIRequest(
+                        "system",
+                        "Ответь одним словом: 'готов'",
+                        5
+                    );
                     
-                    if (response) {
+                    if (response && response.toLowerCase().includes('готов')) {
                         this.isConnected = true;
                         this.useRealAI = true;
-                        this.updateAPIStatus('GPT-5 Nano подключен!', 'success');
-                        document.getElementById('aiMode').textContent = 'GPT-5 NANO';
+                        this.updateAPIStatus('OpenAI подключен!', 'success');
+                        document.getElementById('aiMode').textContent = 'OPENAI';
                         return true;
                     }
                     
                 } catch (error) {
-                    console.log('Responses API failed, trying Chat Completions...');
-                    try {
-                        const response = await this.makeAPIRequest(
-                            "system",
-                            "Ответь одним словом: 'готов'",
-                            5
-                        );
-                        
-                        if (response && response.toLowerCase().includes('готов')) {
-                            this.isConnected = true;
-                            this.useRealAI = true;
-                            this.updateAPIStatus('OpenAI подключен!', 'success');
-                            document.getElementById('aiMode').textContent = 'OPENAI';
-                            return true;
-                        }
-                    } catch (error2) {
-                        this.handleAPIError(error2);
-                    }
+                    this.handleAPIError(error);
                 }
                 
                 this.useRealAI = false;
                 this.updateAPIStatus('Режим умной симуляции', 'warning');
+                document.getElementById('aiMode').textContent = 'УМНАЯ СИМУЛЯЦИЯ';
                 return false;
             }
 
-            async makeResponsesAPIRequest(userMessage) {
+            async makeAPIRequest(role, content, max_tokens = 100) {
                 if (!this.apiKey) throw new Error('API ключ не установлен');
 
-                const response = await fetch('https://api.openai.com/v1/responses', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: "gpt-4o",
-                        input: userMessage,
-                        store: false
-                    })
-                });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const data = await response.json();
-                return data.output_text || data.choices?.[0]?.message?.content || "Ответ получен";
-            }
-
-            async makeAPIRequest(role, content, max_tokens = 100) {
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -790,7 +773,11 @@
                     })
                 });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
                 const data = await response.json();
                 return data.choices[0].message.content;
             }
@@ -799,34 +786,25 @@
                 if (!this.useRealAI || !this.apiKey) return null;
 
                 try {
-                    let response = await this.makeResponsesAPIRequest(userMessage);
-                    console.log('GPT-5 Nano Response:', response);
+                    const prompt = `Ты - нейросеть CO3HAHNE. Ответь естественно и по делу: "${userMessage}"`;
+                    const response = await this.makeAPIRequest("user", prompt, 150);
                     return response;
                 } catch (error) {
-                    console.log('Falling back to Chat Completions API');
-                    try {
-                        const prompt = `Ты - нейросеть CO3HAHNE. Ответь естественно и по делу: "${userMessage}"`;
-                        const response = await this.makeAPIRequest("user", prompt, 150);
-                        return response;
-                    } catch (error2) {
-                        this.handleAPIError(error2);
-                        return null;
-                    }
+                    this.handleAPIError(error);
+                    return null;
                 }
             }
 
             handleAPIError(error) {
                 console.error('API Error:', error);
                 if (error.message.includes('429')) {
-                    this.updateAPIStatus('Лимит запросов', 'error');
+                    this.updateAPIStatus('Лимит запросов. Используется симуляция', 'warning');
                 } else if (error.message.includes('401')) {
                     this.updateAPIStatus('Неверный API ключ', 'error');
                 } else if (error.message.includes('402')) {
                     this.updateAPIStatus('Недостаточно средств', 'error');
-                } else if (error.message.includes('404')) {
-                    this.updateAPIStatus('GPT-5 Nano недоступен', 'warning');
                 } else {
-                    this.updateAPIStatus('Ошибка подключения', 'error');
+                    this.updateAPIStatus('Ошибка подключения. Используется симуляция', 'warning');
                 }
                 this.useRealAI = false;
                 document.getElementById('aiMode').textContent = 'УМНАЯ СИМУЛЯЦИЯ';
@@ -871,6 +849,8 @@
             }
 
             async connect() {
+                if (this.isConnected) return true;
+                
                 this.isConnected = true;
                 this.addMessage('ai', 'СИСТЕМА CO3HAHNE АКТИВИРОВАНА');
                 this.addMessage('ai', 'НЕЙРОННЫЕ СЕТИ ИНИЦИАЛИЗИРОВАНЫ');
@@ -1066,9 +1046,12 @@
         function resetSystem() {
             window.neuralActivity.stopMonitoring();
             window.chatSystem.clearChat();
-            document.getElementById('systemStatus').textContent = 'СБРОШЕНО';
+            document.getElementById('systemStatus').textContent = 'ОЖИДАНИЕ';
             document.getElementById('aiMode').textContent = 'ОТКЛЮЧЕНО';
             window.aiIntegration.updateAPIStatus('Отключено', 'warning');
+            window.aiIntegration.useRealAI = false;
+            window.aiIntegration.isConnected = false;
+            window.chatSystem.isConnected = false;
         }
 
         function handleChatInput(event) {
@@ -1082,6 +1065,12 @@
             const message = input.value.trim();
             
             if (message) {
+                if (!window.chatSystem.isConnected) {
+                    window.chatSystem.addMessage('ai', 'СИСТЕМА НЕ АКТИВИРОВАНА. Нажмите "АКТИВИРОВАТЬ CO3HAHNE"');
+                    input.value = '';
+                    return;
+                }
+                
                 window.chatSystem.addMessage('user', message);
                 input.value = '';
                 
