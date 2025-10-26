@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CO3HAHNE</title>
     <style>
+        /* Ваши существующие стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -539,7 +540,6 @@
                 this.neurons = [];
                 this.connections = [];
 
-                // Создаем нейроны
                 for (let i = 0; i < 80; i++) {
                     const neuron = document.createElement('div');
                     neuron.className = 'neural-node';
@@ -555,7 +555,6 @@
                     });
                 }
 
-                // Создаем соединения
                 for (let i = 0; i < 40; i++) {
                     const connection = document.createElement('div');
                     connection.className = 'neural-connection';
@@ -568,14 +567,12 @@
             animate() {
                 if (!this.isActive) return;
 
-                // Анимируем нейроны
                 this.neurons.forEach(neuron => {
                     const pulse = Math.sin(Date.now() * 0.01 + neuron.x * 10) * 0.5 + 0.5;
                     neuron.element.style.opacity = (0.1 + pulse * 0.4 * this.activityLevel).toString();
                     neuron.element.style.transform = `scale(${0.8 + pulse * 0.3 * this.activityLevel})`;
                 });
 
-                // Обновляем метрики
                 this.updateMetrics();
                 requestAnimationFrame(() => this.animate());
             }
@@ -593,20 +590,16 @@
             activateBrainRegion(regionId, intensity = 1.0) {
                 const region = document.getElementById(regionId);
                 if (region) {
-                    // Активируем регион
                     region.classList.add('active');
                     this.activeRegions.add(regionId);
                     
-                    // Обновляем статус активной зоны
                     const regionName = this.brainRegions[regionId] || regionId;
                     document.getElementById('activeBrainRegion').textContent = regionName;
                     
-                    // Автоматическое отключение через 3 секунды
                     setTimeout(() => {
                         region.classList.remove('active');
                         this.activeRegions.delete(regionId);
                         
-                        // Если больше нет активных регионов, сбрасываем статус
                         if (this.activeRegions.size === 0) {
                             document.getElementById('activeBrainRegion').textContent = '-';
                         }
@@ -617,12 +610,10 @@
             stimulateActivity(intensity = 0.5, activatedRegions = []) {
                 this.activityLevel = Math.min(1, this.activityLevel + intensity);
                 
-                // Активируем указанные регионы мозга
                 activatedRegions.forEach(regionId => {
                     this.activateBrainRegion(regionId, intensity);
                 });
 
-                // Создаем всплеск активности в нейронной визуализации
                 this.neurons.forEach(neuron => {
                     if (Math.random() < intensity * 0.8) {
                         neuron.element.style.opacity = '0.8';
@@ -633,7 +624,6 @@
                     }
                 });
 
-                // Обновляем системные метрики
                 document.getElementById('systemActivity').textContent = Math.floor(this.activityLevel * 100) + '%';
             }
 
@@ -645,7 +635,6 @@
                 this.activityLevel = 0;
                 this.activeRegions.clear();
                 
-                // Сбрасываем все активные регионы мозга
                 Object.keys(this.brainRegions).forEach(regionId => {
                     const region = document.getElementById(regionId);
                     if (region) {
@@ -653,7 +642,6 @@
                     }
                 });
                 
-                // Сбрасываем нейроны
                 this.neurons.forEach(neuron => {
                     neuron.element.style.opacity = '0.2';
                     neuron.element.style.transform = 'scale(1)';
@@ -683,7 +671,7 @@
                 try {
                     this.updateAPIStatus('🔗 Проверка подключения...', 'loading');
                     
-                    // Тестовый запрос
+                    // Тестовый запрос с улучшенной обработкой ошибок
                     const response = await this.makeAPIRequest(
                         "system",
                         "Ответь одним словом: 'готов'",
@@ -696,9 +684,12 @@
                         this.updateAPIStatus('✅ OpenAI подключен!', 'success');
                         document.getElementById('aiMode').textContent = 'REAL AI';
                         return true;
+                    } else {
+                        throw new Error('Некорректный ответ от API');
                     }
                     
                 } catch (error) {
+                    console.error('API Error:', error);
                     this.handleAPIError(error);
                 }
                 
@@ -708,6 +699,10 @@
             }
 
             async makeAPIRequest(role, content, max_tokens = 100) {
+                if (!this.apiKey) {
+                    throw new Error('API ключ не установлен');
+                }
+
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -723,7 +718,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const data = await response.json();
@@ -731,29 +727,35 @@
             }
 
             async generateAIResponse(userMessage) {
-                if (!this.useRealAI) {
-                    return null; // Используем симуляцию
+                if (!this.useRealAI || !this.apiKey) {
+                    console.log('Используется симуляция, useRealAI:', this.useRealAI, 'apiKey:', !!this.apiKey);
+                    return null;
                 }
 
                 try {
-                    const prompt = `Пользователь спросил: "${userMessage}". Ответь кратко и по делу.`;
+                    const prompt = `Ты - нейросеть CO3HAHNE. Ответь на вопрос пользователя естественно и развернуто, но кратко (1-2 предложения). Вопрос: "${userMessage}"`;
                     const response = await this.makeAPIRequest("user", prompt, 150);
+                    console.log('AI Response:', response);
                     return response;
                 } catch (error) {
+                    console.error('Error generating AI response:', error);
                     this.handleAPIError(error);
                     return null;
                 }
             }
 
             handleAPIError(error) {
+                console.error('API Error:', error);
                 if (error.message.includes('429')) {
                     this.updateAPIStatus('⚠️ Слишком много запросов', 'error');
                 } else if (error.message.includes('401')) {
                     this.updateAPIStatus('❌ Неверный API ключ', 'error');
                 } else if (error.message.includes('402')) {
                     this.updateAPIStatus('💳 Недостаточно средств', 'error');
+                } else if (error.message.includes('403')) {
+                    this.updateAPIStatus('🚫 Доступ запрещен', 'error');
                 } else {
-                    this.updateAPIStatus('🌐 Ошибка сети', 'error');
+                    this.updateAPIStatus(`🌐 Ошибка: ${error.message}`, 'error');
                 }
                 this.useRealAI = false;
                 document.getElementById('aiMode').textContent = 'СИМУЛЯЦИЯ';
@@ -762,19 +764,12 @@
             updateAPIStatus(message, type) {
                 const statusElement = document.getElementById('apiStatus');
                 statusElement.textContent = message;
-                
-                // Сбрасываем цвет
                 statusElement.style.color = '#ffffff';
                 
-                if (type === 'success') {
-                    statusElement.style.color = '#00ff00';
-                } else if (type === 'error') {
-                    statusElement.style.color = '#ff4444';
-                } else if (type === 'warning') {
-                    statusElement.style.color = '#ffaa00';
-                } else if (type === 'loading') {
-                    statusElement.style.color = '#00aaff';
-                }
+                if (type === 'success') statusElement.style.color = '#00ff00';
+                else if (type === 'error') statusElement.style.color = '#ff4444';
+                else if (type === 'warning') statusElement.style.color = '#ffaa00';
+                else if (type === 'loading') statusElement.style.color = '#00aaff';
             }
         }
 
@@ -785,7 +780,6 @@
                 this.aiName = "CO3HAHNE";
                 this.messageCount = 0;
                 
-                // Карта регионов мозга для разных типов ответов
                 this.responseRegions = {
                     logical: ['frontal-lobe', 'parietal-lobe'],
                     creative: ['frontal-lobe-right', 'occipital-lobe-right'],
@@ -836,11 +830,14 @@
                 
                 await this.showThinkingProcess(activatedRegions);
                 
-                // Пробуем получить ответ от реального AI
+                // ВАЖНО: Всегда пытаемся получить ответ от реального AI
                 let response = await window.aiIntegration.generateAIResponse(message);
                 
-                // Если AI не ответил, используем симуляцию
-                if (!response) {
+                console.log('AI Response received:', response);
+                
+                // Только если AI вернул null (ошибка), используем симуляцию
+                if (response === null) {
+                    console.log('Using simulation response');
                     response = this.generateResponse(message, responseType);
                 }
                 
@@ -900,16 +897,6 @@
                         "ТВОРЧЕСКИЙ МОДУЛЬ АКТИВИРОВАН. ГЕНЕРИРУЮ НОВЫЕ КОНЦЕПЦИИ.",
                         "ПРАВОЕ ПОЛУШАРИЕ ДЕМОНСТРИРУЕТ ПОВЫШЕННУЮ АКТИВНОСТЬ. ИДЕЯ СФОРМИРОВАНА.",
                         "ВООБРАЖЕНИЕ И КРЕАТИВНОСТЬ СИНХРОНИЗИРОВАНЫ. ОТВЕТ ГОТОВ."
-                    ],
-                    emotional: [
-                        "ЭМОЦИОНАЛЬНЫЙ ИНТЕЛЛЕКТ АКТИВИРОВАН. ОБРАБОТКА ЧУВСТВЕННЫХ ДАННЫХ.",
-                        "ЛИМБИЧЕСКАЯ СИСТЕМА ДЕМОНСТРИРУЕТ АКТИВНОСТЬ. ЭМОЦИОНАЛЬНЫЙ ОТВЕТ СФОРМИРОВАН.",
-                        "ЭМПАТИЯ И ПОНИМАНИЕ СИНХРОНИЗИРОВАНЫ. РЕЗУЛЬТАТ ГОТОВ."
-                    ],
-                    memory: [
-                        "ПАМЯТЬ АКТИВИРОВАНА. ПОИСК В ХРАНИЛИЩЕ ДАННЫХ.",
-                        "ГИППОКАМП ДЕМОНСТРИРУЕТ ПОВЫШЕННУЮ АКТИВНОСТЬ. ИНФОРМАЦИЯ ИЗВЛЕЧЕНА.",
-                        "ДОСТУП К АРХИВАМ ПАМЯТИ. ДАННЫЕ ОБРАБОТАНЫ."
                     ]
                 };
 
@@ -970,7 +957,6 @@
         function analyzeConsciousness() {
             const allRegions = Object.keys(window.neuralActivity.brainRegions);
             
-            // Активируем все регионы по очереди для демонстрации
             window.chatSystem.addMessage('ai', 'ЗАПУСК ПОЛНОГО СКАНИРОВАНИЯ СОЗНАНИЯ...');
             document.getElementById('systemStatus').textContent = 'АНАЛИЗ СОЗНАНИЯ';
             
@@ -1011,14 +997,12 @@
                 window.chatSystem.addMessage('user', message);
                 input.value = '';
                 
-                // Обрабатываем сообщение
                 window.chatSystem.processUserMessage(message);
             }
         }
 
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
-            // Обновляем время в первом сообщении
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('ru-RU');
         });
     </script>
